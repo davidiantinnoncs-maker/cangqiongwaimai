@@ -12,6 +12,7 @@ import com.sky.dto.EmployeePageQueryDTO;
 import com.sky.entity.Employee;
 import com.sky.exception.AccountLockedException;
 import com.sky.exception.AccountNotFoundException;
+import com.sky.exception.BaseException;
 import com.sky.exception.PasswordErrorException;
 import com.sky.mapper.EmployeeMapper;
 import com.sky.result.PageResult;
@@ -106,6 +107,21 @@ public class EmployeeServiceImpl implements EmployeeService {
         List<Employee> list = employeeMapper.pageQuery(employeePageQueryDTO);
         PageInfo<Employee> pageInfo = new PageInfo<>(list);
         return new PageResult(pageInfo.getTotal(), pageInfo.getList());
+    }
+
+    /**
+     * 启用/禁用员工账号
+     *
+     * @param status
+     * @param id
+     */
+    @Override
+    public void enableOrDisable(Integer status, Long id) {
+        Employee employee = employeeMapper.getById(id);
+        if (employee != null && "admin".equals(employee.getUsername())) {
+            throw new BaseException("不允许操作管理员账号");
+        }
+        employeeMapper.updateStatus(id, status);
     }
 
 }

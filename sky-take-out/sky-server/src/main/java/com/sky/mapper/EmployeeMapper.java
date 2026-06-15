@@ -5,7 +5,9 @@ import com.sky.entity.Employee;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Options;
+import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
 
@@ -37,5 +39,21 @@ public interface EmployeeMapper {
      * @return
      */
     List<Employee> pageQuery(EmployeePageQueryDTO employeePageQueryDTO);
+
+    /**
+     * 根据ID查询员工
+     * @param id
+     * @return
+     */
+    @Select("select * from employee where id = #{id}")
+    Employee getById(Long id);
+
+    /**
+     * 启用/禁用员工账号
+     * @param id
+     * @param status
+     */
+    @Update("update employee set status = #{status} where id = #{id}")
+    void updateStatus(@Param("id") Long id, @Param("status") Integer status);
 
 }
