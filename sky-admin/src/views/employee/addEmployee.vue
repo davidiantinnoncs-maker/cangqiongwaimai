@@ -263,8 +263,9 @@ export default class extends Vue {
                 this.$message.error(res.data.msg)
               }
             })
-            .catch(() => {
-              // this.$message.error('请求出错了：' + err.message)
+            .catch((err) => {
+              const msg = err.response && err.response.data && err.response.data.msg
+              this.$message.error(msg || '请求出错了')
             })
         } else {
           const params = {
@@ -280,8 +281,9 @@ export default class extends Vue {
                 this.$message.error(res.data.msg)
               }
             })
-            .catch(() => {
-              // this.$message.error('请求出错了：' + err.message)
+            .catch((err) => {
+              const msg = err.response && err.response.data && err.response.data.msg
+              this.$message.error(msg || '请求出错了')
             })
         }
       } else {

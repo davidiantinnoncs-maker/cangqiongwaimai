@@ -1,10 +1,13 @@
 package com.sky.mapper;
 
+import com.sky.dto.EmployeePageQueryDTO;
 import com.sky.entity.Employee;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Options;
 import org.apache.ibatis.annotations.Select;
+
+import java.util.List;
 
 @Mapper
 public interface EmployeeMapper {
@@ -27,5 +30,12 @@ public interface EmployeeMapper {
             "#{status}, #{createTime}, #{updateTime}, #{createUser}, #{updateUser})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     void insert(Employee employee);
+
+    /**
+     * 分页查询员工（支持按姓名模糊查询）
+     * @param employeePageQueryDTO
+     * @return
+     */
+    List<Employee> pageQuery(EmployeePageQueryDTO employeePageQueryDTO);
 
 }
