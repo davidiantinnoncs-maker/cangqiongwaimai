@@ -56,4 +56,10 @@ public interface EmployeeMapper {
     @Update("update employee set status = #{status} where id = #{id}")
     void updateStatus(@Param("id") Long id, @Param("status") Integer status);
 
+    /**
+     * 更新员工信息
+     * @param employee
+     */
+    void update(Employee employee);
+
 }
