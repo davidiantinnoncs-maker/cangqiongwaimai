@@ -43,4 +43,15 @@ public class GlobalExceptionHandler {
         return Result.error("数据已存在，操作失败");
     }
 
+    /**
+     * 捕获所有未处理的异常，确保返回JSON格式
+     * @param ex
+     * @return
+     */
+    @ExceptionHandler(Exception.class)
+    public Result exceptionHandler(Exception ex){
+        log.error("系统异常：{}", ex.getMessage(), ex);
+        return Result.error("系统异常：" + ex.getMessage());
+    }
+
 }
