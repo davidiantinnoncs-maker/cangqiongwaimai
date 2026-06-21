@@ -4,6 +4,9 @@ server:
 spring:
   profiles:
     active: dev,local
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
   main:
     allow-circular-references: true
   servlet:
@@ -16,7 +19,10 @@ spring:
       url: jdbc:mysql://${sky.datasource.host}:${sky.datasource.port}/${sky.datasource.database}?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
       username: ${sky.datasource.username}
       password: ${sky.datasource.password}
-
+  redis:
+    host: ${sky.redis.host}
+    port: ${sky.redis.port}
+    database: ${sky.redis.database}
 mybatis:
   #mapper配置文件
   mapper-locations: classpath:mapper/*.xml
