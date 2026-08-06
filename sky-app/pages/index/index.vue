@@ -65,7 +65,7 @@
 						<view class="dish_label" @click="openDetailHandle(item)"> {{ item.description || item.name }} </view>
 						<view class="dish_label" @click="openDetailHandle(item)"> 月销量0</view>
 						<!-- <view class="dish_num"> {{ item.dishName }} </view> -->
-						<view class="dish_price"> <text class="ico">￥</text> {{ item.price / 100 }} </view>
+						<view class="dish_price"> <text class="ico">￥</text> {{ Number(item.price).toFixed(2) }} </view>
 						<!-- item.flavors && item.flavors.length === 0 || item.dishNumber > 0 -->
 						<view class="dish_active" v-if="!item.flavors || item.flavors.length === 0 || item.dishNumber > 0">
 							<!-- 减菜 -->
@@ -108,7 +108,7 @@
 				<view class="order_dish_num"> {{orderDishNumber}} </view>
 			</view>
 			<view class="order_price">
-				 <text class="ico">￥ </text> {{orderDishPrice / 100+6}}
+				 <text class="ico">￥ </text> {{ (Number(orderDishPrice) + 6).toFixed(2) }}
 			</view>
 			<view class="order_but" @click="goOrder()">
 				去结算
@@ -153,7 +153,7 @@
         </scroll-view>
         <view class="but_item">
 					<view class="price">
-						 <text class="ico"> ￥ </text> {{moreNormDishdata.price / 100}}
+						 <text class="ico"> ￥ </text> {{ Number(moreNormDishdata.price).toFixed(2) }}
 					</view>
 					<view class="active" v-if="moreNormDishdata.dishNumber && moreNormDishdata.dishNumber > 0">
 						<image src="../../static/btn_red.png"  @click="redDishAction(moreNormDishdata, '普通')" class="dish_red" mode=""></image>
@@ -184,7 +184,7 @@
 				</view>
 				<view class="but_item">
 					<view class="price">
-						 <text class="ico"> ￥ </text> {{dishDetailes.price / 100}}
+						 <text class="ico"> ￥ </text> {{ Number(dishDetailes.price).toFixed(2) }}
 					</view>
 					<view class="active" v-if="dishDetailes.dishNumber && dishDetailes.dishNumber > 0">
 						<image src="../../static/btn_red.png"  @click="redDishAction(dishDetailes, '普通')" class="dish_red" mode=""></image>
@@ -201,6 +201,13 @@
 				</view>
 			</view>
 			<view class="dish_detail_pop" v-else>
+				<image mode="aspectFill" class="div_big_image" :src="getNewImage(dishDetailes.image)"></image>
+				<view class="title">
+					{{dishDetailes.name}}
+				</view>
+				<view class="desc">
+					{{dishDetailes.description}}
+				</view>
 				<scroll-view class="dish_items" scroll-y="true" scroll-top="0rpx">
 					<view class="dish_item" v-for="(item, index) in dishMealData" :key="index">
 						<image class="div_big_image" :src="getNewImage(item.image)" mode=""></image>
@@ -215,7 +222,7 @@
 				</scroll-view>
 				<view class="but_item">
 					<view class="price">
-						 <text class="ico"> ￥ </text> {{dishDetailes.price / 100}}
+						 <text class="ico"> ￥ </text> {{ Number(dishDetailes.price).toFixed(2) }}
 					</view>
 					<view class="active" v-if="dishDetailes.dishNumber && dishDetailes.dishNumber > 0">
 						<image src="../../static/btn_red.png"  @click="redDishAction(dishDetailes, '普通')" class="dish_red" mode=""></image>
@@ -244,6 +251,7 @@
 					</view>
 				</view>
 				<scroll-view class="card_order_list" scroll-y="true" scroll-top="40rpx">
+					<view class="cart_empty" v-if="!orderListDataes.length">购物车是空的</view>
 					<view class="type_item_cont"  v-for="(item, ind) in orderAndUserInfo" :key="ind">
 						<view class="type_item"  v-for="(obj, index) in item.dishList" :key="index">
 							<view class="dish_img">
@@ -251,7 +259,8 @@
 							</view>
 							<view class="dish_info">
 								<view class="dish_name"> {{ obj.name }} </view>
-								<view class="dish_price"> <text class="ico">￥</text> {{ obj.amount / 100 }} </view>
+								<view class="dish_dishFlavor" v-if="obj.dishFlavor">{{ obj.dishFlavor }}</view>
+								<view class="dish_price"> <text class="ico">￥</text> {{ Number(obj.amount).toFixed(2) }} </view>
 								<view class="dish_active">
 									<image v-if="obj.number && obj.number > 0" src="../../static/btn_red.png"  @click.stop="redDishAction(obj, '购物车')" class="dish_red" mode=""></image>
 									<text v-if="obj.number && obj.number > 0" class="dish_number">{{obj.number}}</text>
@@ -265,6 +274,22 @@
 			</view>
 		</view>
 		<!-- 购物车弹框 - end -->
+		<!-- 微信登录弹框 - start -->
+		<view class="pop_mask" v-show="showLoginPop">
+			<view class="login_pop">
+				<view class="login_title">完善账号信息</view>
+				<button class="avatar_btn" open-type="chooseAvatar" @chooseavatar="onChooseAvatar">
+					<image class="avatar_img" :src="loginAvatar || defaultAvatar"></image>
+					<text class="avatar_tip">点击选择微信头像</text>
+				</button>
+				<view class="nickname_row">
+					<text class="nickname_label">昵称</text>
+					<input class="nickname_input" type="nickname" v-model="loginNickname" placeholder="请输入昵称" />
+				</view>
+				<button class="login_confirm" @click="submitLogin">确认登录</button>
+			</view>
+		</view>
+		<!-- 微信登录弹框 - end -->
 		<view class="pop_mask" v-show="loaddingSt">
 			<view class="lodding">
 				<image class="lodding_ico" src="../../static/lodding.gif" mode=""></image>

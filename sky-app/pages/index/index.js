@@ -72,7 +72,13 @@ export default {
 				tableId: '1282346960773238786'
 			 },
 			 // 添加一个右侧number更新以后重新刷新接口的id --- 这个id来自左侧菜品分类的id
-			 rightIdAndType: {}
+			 rightIdAndType: {},
+			 // 微信登录弹层
+			 showLoginPop: false,
+			 jsCode: '',
+			 loginAvatar: '',
+			 loginNickname: '',
+			 defaultAvatar: '../../static/btn_waiter_sel.png'
 		}
 	},
 	computed: {
@@ -111,13 +117,7 @@ export default {
 				uni.navigateTo({url: '/pages/nonet/index'})
 			} 
 		})
-		if (options) {
-			if (!options.status && !options.formOrder) {
-				this.getData()
-			}
-		}
-		// 有sessionId免授权
-		// this.sessionId() && this.init()
+		this.getData()
 	},
 	onShow () {
 		// 有sessionId免授权
@@ -126,86 +126,70 @@ export default {
 	methods: {
 		...mapMutations(['setShopInfo', 'initdishListMut', 'setStoreInfo', 'setBaseUserInfo', 'setLodding', 'setSessionId']),
 		...mapState(['shopInfo', 'orderListData', 'baseUserInfo', 'lodding', 'sessionId']),
-		loginSync () {
-			return new Promise((resolve, reject) => {
-				uni.login({
-					// provider: 'weixin',
-					success: (loginRes) => {
-						if (loginRes.errMsg === 'login:ok') {
-							resolve(loginRes.code)
-						}
+		getData () {
+			if (this.sessionId()) {
+				return
+			}
+			uni.login({
+				provider: 'weixin',
+				success: (loginRes) => {
+					if (loginRes.errMsg === 'login:ok') {
+						this.jsCode = loginRes.code
+						this.showLoginPop = true
+					} else {
+						uni.showToast({
+							title: '微信登录失败，请重试',
+							icon: 'none'
+						})
 					}
-				})
+				},
+				fail: () => {
+					uni.showToast({
+						title: '微信登录失败，请重试',
+						icon: 'none'
+					})
+				}
 			})
 		},
-		getData () {
-			let res = wx.getMenuButtonBoundingClientRect()
-			let _this = this
-			this.selectHeight = res.height
-			uni.showModal({
-				title: '温馨提示',
-				content: '亲，授权微信登录后才能正点餐！',
-				showCancel: false,
-				success(res) {
-					if (res.confirm) {
-						let jsCode = ''
-							uni.login({
-								provider: 'weixin',
-								success: (loginRes) => {
-									if (loginRes.errMsg === 'login:ok') {
-                    console.log('-=-=-=-=loginRes-=-=-=',loginRes)
-										jsCode = loginRes.code
-									}
-								}
-							})
-							// 授权
-							uni.getUserProfile({
-								desc: '登录',
-								success: function (userInfo) {
-									_this.setBaseUserInfo(userInfo.rawData)
-									const params = {
-										phone: jsCode,
-										avatar: userInfo.userInfo.avatarUrl,
-										name: userInfo.userInfo.nickName,
-										sex: userInfo.userInfo.gender
-									}
-									userLogin(params).then(success => {
-										if (success.code === 1) {
-											success.map && _this.setSessionId(success.map.sessionId)
-											_this.init()
-										}
-									}).catch(err => {
-									})
-								},
-								fail: function (err) {
-									
-								}
-							})
-						
-						
-						// uni.getUserProfile({
-						// 	desc: '登录',
-						// 	success(userInfo) {
-						// 		_this.setBaseUserInfo(userInfo.rawData)
-						// 		const params = {
-						// 			phone: userInfo.signature,
-						// 			avatar: userInfo.userInfo.avatarUrl,
-						// 			name: userInfo.userInfo.nickName,
-						// 			sex: userInfo.userInfo.gender
-						// 		}
-						// 		// 咱们自己的的接口
-						// 		userLogin(params).then(success => {
-						// 			if (success.code === 1) {
-						// 				success.map && _this.setSessionId(success.map.sessionId)
-						// 				_this.init()
-						// 			}
-						// 		})
-						// 	},
-						// 	fail: function (err) {
-						// 	}
-						// })
-					}
+		onChooseAvatar (e) {
+			this.loginAvatar = e.detail.avatarUrl
+		},
+		submitLogin () {
+			if (!this.loginNickname) {
+				uni.showToast({
+					title: '请填写昵称',
+					icon: 'none'
+				})
+				return
+			}
+			const params = {
+				code: this.jsCode,
+				name: this.loginNickname,
+				avatar: this.loginAvatar,
+				sex: '0'
+			}
+			userLogin(params).then(success => {
+				if (success.code === 1) {
+					const data = success.data || {}
+					this.setSessionId(data.token || '')
+					this.setBaseUserInfo(JSON.stringify({
+						avatarUrl: this.loginAvatar,
+						nickName: this.loginNickname,
+						gender: '0'
+					}))
+					this.showLoginPop = false
+					this.init()
+				} else {
+					uni.showToast({
+						title: success.msg || '登录失败',
+						icon: 'none'
+					})
 				}
+			}).catch(() => {
+				uni.showToast({
+					title: '登录失败，请重试',
+					icon: 'none'
+				})
 			})
 		}, 
 		
@@ -276,6 +260,7 @@ export default {
 				if (res.code === 1) {
 					this.initdishListMut(res.data)
 					this.computOrderInfo()
+					this.setOrderNum()
 				}
 			}).catch(err => {
 			})
@@ -284,101 +269,120 @@ export default {
 		goOrder () {
 			uni.navigateTo({url: '/pages/order/index'})
 		},
+		// 组装购物车接口参数，兼容菜品、套餐和购物车中的商品
+		buildCartParams (item, form) {
+			let dishFlavor = ''
+			if (this.openMoreNormPop) {
+				dishFlavor = this.flavorDataes.join(',')
+			} else if (form === '购物车') {
+				dishFlavor = item.dishFlavor || ''
+			} else {
+				dishFlavor = item.dishFlavor || this.flavorDataes.join(',')
+			}
+			const params = {
+				dishFlavor: dishFlavor
+			}
+			const isDish = item.type === 1 || (form === '购物车' && item.dishId)
+			const isSetmeal = item.type === 2 || (form === '购物车' && item.setmealId)
+			if (isDish) {
+				params.dishId = form === '购物车' ? item.dishId : item.id
+			} else if (isSetmeal) {
+				params.setmealId = form === '购物车' ? item.setmealId : item.id
+			}
+			return params
+		},
 		// 加菜 - 添加菜品
 		async addDishAction (item, form) {
-      console.log('this.flavorDataes',this.flavorDataes)
-      // 规格
-      if(this.openMoreNormPop && (!this.flavorDataes || this.flavorDataes.length<=0) ){
-        uni.showToast({
-          title: '请选择规格',
-          icon: 'none',
-        })
-        return false
-      }
-      console.log('-=-=-=addDishAction-=-=-')
-			// 实时更新obj.newCardNumber新添加的字段----加入购物车数量number
-			// item.newCardNumber++
-			if(this.orderListDataes && !this.orderListDataes.some(n => n.id == item.dishId) && this.flavorDataes.length > 0) {
-				item.flavorRemark = JSON.stringify(this.flavorDataes)
+			// 规格弹窗打开时必须先选择规格
+			if (this.openMoreNormPop && (!this.flavorDataes || this.flavorDataes.length <= 0)) {
+				uni.showToast({
+					title: '请选择规格',
+					icon: 'none'
+				})
+				return false
 			}
-			// const wxUserInfo = this.baseUserInfo()
-			// 有sort字段是菜品
-			let params = {
-				amount: item.price,
-				dishFlavor: this.flavorDataes.join(','),
-				number: 1 || item.dishNumber,
-				name: item.name,
-				image: item.image
+			// 普通入口清空上次规格选择，避免口味串到无规格商品上
+			if (!this.openMoreNormPop && form !== '购物车') {
+				this.flavorDataes = []
 			}
-			if (item.type === 1 || item.dishId !== null) {
-				params = {
-					...params,
-					dishId: form === '购物车' ? item.dishId : item.id
-				}
-			} else {
-				params = {
-					...params,
-					setmealId: form === '购物车' ? item.setmealId : item.id
-				}
+			const params = this.buildCartParams(item, form)
+			if (!params.dishId && !params.setmealId) {
+				uni.showToast({
+					title: '商品参数错误',
+					icon: 'none'
+				})
+				return false
 			}
 			newAddShoppingCartAdd(params).then(res => {
 				if (res.code === 1) {
-					// this.computOrderInfo()
-					// this.setOrderNum()
-					// 菜品详情弹框隐藏---暂时这么处理，去更新购物车状态
+					this.flavorDataes = []
 					this.openDetailPop = false
 					this.openMoreNormPop = false
 					// 调用一次购物车集合---初始化
 					this.getTableOrderDishListes()
 					// 重新调取刷新右侧具体菜品列表
 					this.getDishListDataes(this.rightIdAndType)
+				} else {
+					uni.showToast({
+						title: res.msg || '添加失败',
+						icon: 'none'
+					})
 				}
 			}).catch(err => {
+				uni.showToast({
+					title: (err && err.msg) || '添加失败',
+					icon: 'none'
+				})
 			})
 		},
 		// 减菜 - 添加菜品
 		async redDishAction (item, form) {
-			// 实时更新obj.newCardNumber新添加的字段----加入购物车数量number
-			// if (item.newCardNumber === 0) {
-			// 	item.newCardNumber = 0
-			// } else {
-			// 	item.newCardNumber--
-			// }
-			let params = {}
-			if (item.type === 1 || item.dishId !== null) {
-				params = {
-					...params,
-					dishId: form === '购物车' ? item.dishId : item.id
-				}
-			} else {
-				params = {
-					...params,
-					setmealId: form === '购物车' ? item.setmealId : item.id
-				}
+			if (!this.openMoreNormPop && form !== '购物车') {
+				this.flavorDataes = []
+			}
+			const params = this.buildCartParams(item, form)
+			if (!params.dishId && !params.setmealId) {
+				return false
 			}
 			await newShoppingCartSub(params).then(res => {
 				if (res.code === 1) {
-					// this.computOrderInfo()
-					// this.setOrderNum()
 					// 调用一次购物车集合---初始化
 					this.getTableOrderDishListes()
 					// 重新调取刷新右侧具体菜品列表
 					this.getDishListDataes(this.rightIdAndType)
+				} else {
+					uni.showToast({
+						title: res.msg || '减少失败',
+						icon: 'none'
+					})
 				}
 			}).catch(err => {
+				uni.showToast({
+					title: (err && err.msg) || '减少失败',
+					icon: 'none'
+				})
 			})
 		},
 		// 清空购物车
 		clearCardOrder () {
 			delShoppingCart().then(res => {
-				// this.computOrderInfo()
-				// this.setOrderNum()
-				this.openOrderCartList = false
-				// 调用一次购物车集合---初始化
-				this.getTableOrderDishListes()
-				// 重新调取刷新右侧具体菜品列表
-				this.getDishListDataes(this.rightIdAndType)
+				if (res.code === 1) {
+					this.openOrderCartList = false
+					// 调用一次购物车集合---初始化
+					this.getTableOrderDishListes()
+					// 重新调取刷新右侧具体菜品列表
+					this.getDishListDataes(this.rightIdAndType)
+				} else {
+					uni.showToast({
+						title: res.msg || '清空失败',
+						icon: 'none'
+					})
+				}
 			}).catch(err => {
+				uni.showToast({
+					title: (err && err.msg) || '清空失败',
+					icon: 'none'
+				})
 			})
 		},
 		// 打开菜品牌详情
@@ -453,43 +457,31 @@ export default {
 		// },
 		// 订单里和总订单价格计算
 		computOrderInfo () {
-			let oriData = this.orderListDataes
+			let oriData = Array.isArray(this.orderListDataes) ? this.orderListDataes : []
 			this.orderDishNumber = this.orderDishPrice = 0
-			oriData.map((n, i) => {
-				this.orderDishNumber += n.number
-				// this.orderDishPrice += n.number * n.price
-				this.orderDishPrice += n.number * n.amount
+			oriData.forEach((n) => {
+				this.orderDishNumber += Number(n.number) || 0
+				this.orderDishPrice += (Number(n.number) || 0) * (Number(n.amount) || 0)
 			})
 		},
 		// 处理点餐数量 - 更新菜品已点餐数量
 		setOrderNum () {
 			let ODate = this.dishListData
-			let CData = this.orderListDataes
+			let CData = Array.isArray(this.orderListDataes) ? this.orderListDataes : []
 			ODate && ODate.map((obj, index) => {
 				obj.dishNumber = 0
-				CData && CData.forEach((tg, ind) => {
-					if (obj.id === tg.dishId) {
+				CData.forEach((tg) => {
+					if (obj.id === tg.dishId || obj.id === tg.setmealId) {
 						obj.dishNumber = tg.number
-						// 对新添加的实时更新newCardNumber字段进行赋值
-						// obj.newCardNumber = tg.number
+						obj.dishFlavor = tg.dishFlavor || ''
 					}
 				})
 			})
-			
-			// this.dishListData && this.dishListData.map((obj, index) => {
-			// 	obj.dishNumber = 0
-			// 	this.orderListDataes && this.orderListDataes.forEach((tg, ind) => {
-			// 		if (obj.id === tg.dishId) {
-			// 			obj.dishNumber = tg.number
-			// 		}
-			// 	})
-			// })
 			if (this.dishListItems.length == 0) {
 				this.dishListItems = ODate
 			} else {
 				this.dishListItems.splice(0, this.dishListItems.length, ...ODate)
 			}
-      console.log('-=-=-=-setOrderNum-=-=',this.dishListItems)
 		},
 	}
 }

@@ -12,6 +12,7 @@ export function request({url='', params={}, method='GET'}) {
 			'Content-Type': 'application/json', 
 			// 'shopid':storeInfo.storeInfo.shopId ?? '',
 			// 'storeid':storeInfo.storeInfo.storeId ?? '',
+			authentication: storeInfo.sessionId,
 			Cookie: 'JSESSIONID=' + storeInfo.sessionId
 		}
 	
