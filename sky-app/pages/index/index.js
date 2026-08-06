@@ -263,6 +263,10 @@ export default {
 		},
 		// 重新拼装image
 		getNewImage (image) {
+			// 后端返回的OSS图片地址已经是完整链接，直接使用
+			if (image && (image.indexOf('http://') === 0 || image.indexOf('https://') === 0)) {
+				return image
+			}
 			return `${baseUrl}/common/download?name=${image}`
 		},
 		// 获取购物车订单列表

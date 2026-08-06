@@ -1,5 +1,6 @@
 package com.sky.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.sky.constant.MessageConstant;
@@ -15,16 +16,35 @@ import com.sky.mapper.SetmealDishMapper;
 import com.sky.result.PageResult;
 import com.sky.service.DishService;
 import com.sky.vo.DishVO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.RedisCallback;
+import org.springframework.data.redis.core.ScanOptions;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class DishServiceImpl implements DishService {
+
+    private static final String DISH_CACHE_KEY_PREFIX = "dish:list:";
+    private static final long DISH_CACHE_TTL_SECONDS = 1800;
+    private static final long DISH_CACHE_TTL_JITTER_SECONDS = 600;
+    private static final long DISH_EMPTY_CACHE_TTL_SECONDS = 60;
 
     @Autowired
     private DishMapper dishMapper;
@@ -32,6 +52,8 @@ public class DishServiceImpl implements DishService {
     private DishFlavorMapper dishFlavorMapper;
     @Autowired
     private SetmealDishMapper setmealDishMapper;
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
     /**
      * 新增菜品（含口味）
@@ -56,6 +78,7 @@ public class DishServiceImpl implements DishService {
             // 4. 批量插入口味
             dishFlavorMapper.insertBatch(flavors);
         }
+        clearDishListCacheAfterCommit();
     }
 
     /**
@@ -104,6 +127,7 @@ public class DishServiceImpl implements DishService {
 
         // 4. 删除菜品
         dishMapper.deleteByIds(ids);
+        clearDishListCacheAfterCommit();
     }
 
     /**
@@ -145,6 +169,122 @@ public class DishServiceImpl implements DishService {
         if (flavors != null && !flavors.isEmpty()) {
             flavors.forEach(flavor -> flavor.setDishId(dishDTO.getId()));
             dishFlavorMapper.insertBatch(flavors);
+        }
+        clearDishListCacheAfterCommit();
+    }
+    /**
+     * 条件查询菜品和口味
+     * @param dish
+     * @return
+     */
+    public List<DishVO> listWithFlavor(Dish dish) {
+        if (dish.getCategoryId() == null || dish.getStatus() == null) {
+            return queryListWithFlavor(dish);
+        }
+
+        String key = DISH_CACHE_KEY_PREFIX + dish.getCategoryId() + ":" + dish.getStatus();
+        String cachedJson = readCache(key);
+        if (cachedJson != null) {
+            try {
+                return JSON.parseArray(cachedJson, DishVO.class);
+            } catch (Exception e) {
+                log.error("菜品列表缓存反序列化失败，key={}", key, e);
+            }
+        }
+
+        List<DishVO> dishVOList = queryListWithFlavor(dish);
+        writeCache(key, dishVOList);
+        return dishVOList;
+    }
+
+    /**
+     * 条件查询菜品和口味（数据库兜底查询）
+     *
+     * @param dish
+     * @return
+     */
+    private List<DishVO> queryListWithFlavor(Dish dish) {
+        List<Dish> dishList = dishMapper.list(dish);
+
+        List<DishVO> dishVOList = new ArrayList<>();
+
+        for (Dish d : dishList) {
+            DishVO dishVO = new DishVO();
+            BeanUtils.copyProperties(d, dishVO);
+
+            // 根据菜品id查询对应的口味
+            List<DishFlavor> flavors = dishFlavorMapper.getByDishId(d.getId());
+
+            dishVO.setFlavors(flavors);
+            dishVOList.add(dishVO);
+        }
+
+        return dishVOList;
+    }
+
+    /**
+     * 读取菜品列表缓存，Redis异常时降级为数据库查询
+     */
+    private String readCache(String key) {
+        try {
+            return stringRedisTemplate.opsForValue().get(key);
+        } catch (Exception e) {
+            log.error("读取菜品列表缓存失败，key={}", key, e);
+            return null;
+        }
+    }
+
+    /**
+     * 写入菜品列表缓存，空列表短时间缓存防止穿透
+     */
+    private void writeCache(String key, List<DishVO> dishVOList) {
+        try {
+            long ttl = dishVOList.isEmpty()
+                    ? DISH_EMPTY_CACHE_TTL_SECONDS
+                    : DISH_CACHE_TTL_SECONDS + ThreadLocalRandom.current().nextLong(DISH_CACHE_TTL_JITTER_SECONDS);
+            stringRedisTemplate.opsForValue().set(key, JSON.toJSONString(dishVOList), ttl, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            log.error("写入菜品列表缓存失败，key={}", key, e);
+        }
+    }
+
+    /**
+     * 事务提交后清除菜品列表缓存
+     */
+    private void clearDishListCacheAfterCommit() {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    clearDishListCache();
+                }
+            });
+        } else {
+            clearDishListCache();
+        }
+    }
+
+    /**
+     * 使用SCAN清除所有菜品列表缓存
+     */
+    private void clearDishListCache() {
+        try {
+            Set<String> keys = stringRedisTemplate.execute((RedisCallback<Set<String>>) connection -> {
+                Set<String> matchedKeys = new HashSet<>();
+                try (Cursor<byte[]> cursor = connection.scan(
+                        ScanOptions.scanOptions().match(DISH_CACHE_KEY_PREFIX + "*").count(100).build())) {
+                    while (cursor.hasNext()) {
+                        matchedKeys.add(new String(cursor.next(), StandardCharsets.UTF_8));
+                    }
+                }
+                return matchedKeys;
+            });
+            if (keys != null && !keys.isEmpty()) {
+                stringRedisTemplate.delete(keys);
+                log.info("已清除菜品列表缓存，共{}个key", keys.size());
+            }
+        } catch (Exception e) {
+            log.error("清除菜品列表缓存失败", e);
         }
     }
 }
