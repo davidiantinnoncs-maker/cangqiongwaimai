@@ -63,7 +63,7 @@
 							<view class="dish_name"> {{ obj.name }} </view>
 							<view class="dish_price">× <text v-if="obj.number && obj.number > 0" class="dish_number">{{obj.number}}</text> </view>
 							<view class="dish_active">
-								<text class="ico">￥</text> {{ obj.amount / 100 }} 
+								<text class="ico">￥</text> {{ Number(obj.amount).toFixed(2) }}
 							</view>
 						</view>
 					</view>
@@ -88,7 +88,7 @@
 			<view class="order_dish_num"> {{orderDishNumber}} </view>
 		</view>
 		<view class="order_price">
-				<text class="ico">￥ </text> {{orderDishPrice / 100+6}}
+				<text class="ico">￥ </text> {{ (Number(orderDishPrice) + 6).toFixed(2) }}
 		</view>
 		<view class="order_but">
 			<!-- <view class="order_but_left" @click="goback()">

@@ -91,7 +91,7 @@ export const payOrder = (params) =>
 // 用户登录
 export const userLogin = (params) => {
 	return request({
-		url: '/user/login',
+		url: '/user/user/login',
 		method: 'POST',
 		params
 	})
@@ -100,7 +100,7 @@ export const userLogin = (params) => {
 // 菜品和套餐的分类
 export const getCategoryList = (params) => {
 	return request({
-		url: '/category/list',
+		url: '/user/category/list',
 		method: 'GET',
 		params
 	})
@@ -109,7 +109,7 @@ export const getCategoryList = (params) => {
 // 查询菜品管理列表
 export const dishListByCategoryId = (params) => {
 	return request({
-		url: '/dish/list',
+		url: '/user/dish/list',
 		method: 'GET',
 		params
 	})
@@ -128,7 +128,7 @@ export const commonDownload = (params) => {
 // 购物车----加菜功能实现
 export const addShoppingCart = (params) => {
 	return request({
-		url: '/shoppingCart',
+		url: '/user/shoppingCart',
 		method: 'POST',
 		params
 	})
@@ -137,7 +137,7 @@ export const addShoppingCart = (params) => {
 // 根据type类型查询是套餐的接口
 export const querySetmeaList = (params) => {
 	return request({
-		url: '/setmeal/list',
+		url: '/user/setmeal/list',
 		method: 'GET',
 		params
 	})
@@ -146,7 +146,7 @@ export const querySetmeaList = (params) => {
 // 获取购物车集合
 export const getShoppingCartList = (params) => {
 	return request({
-		url: '/shoppingCart/list',
+		url: '/user/shoppingCart/list',
 		method: 'GET',
 		params
 	})
@@ -156,7 +156,7 @@ export const getShoppingCartList = (params) => {
 // 修改购物车数量功能
 export const editHoppingCart = (params) => {
 	return request({
-		url: '/shoppingCart',
+		url: '/user/shoppingCart',
 		method: 'PUT',
 		params
 	})
@@ -166,7 +166,7 @@ export const editHoppingCart = (params) => {
 // 购物车新增接口-new
 export const newAddShoppingCartAdd = (params) => {
 	return request({
-		url: '/shoppingCart/add',
+		url: '/user/shoppingCart/add',
 		method: 'POST',
 		params
 	})
@@ -176,7 +176,7 @@ export const newAddShoppingCartAdd = (params) => {
 // 购物车减菜接口-new 
 export const newShoppingCartSub = (params) => {
 	return request({
-		url: '/shoppingCart/sub',
+		url: '/user/shoppingCart/sub',
 		method: 'POST',
 		params
 	})
@@ -186,7 +186,7 @@ export const newShoppingCartSub = (params) => {
 // 清除购物车
 export const delShoppingCart = (params) => {
 	return request({
-		url: '/shoppingCart/clean',
+		url: '/user/shoppingCart/clean',
 		method: 'DELETE',
 		params
 	})
@@ -196,7 +196,7 @@ export const delShoppingCart = (params) => {
 // 最近订单和历史订单
 export const queryOrderUserPage = (params) => {
 	return request({
-		url: '/order/userPage',
+		url: '/user/order/historyOrders',
 		method: 'GET',
 		params
 	})
@@ -206,7 +206,7 @@ export const queryOrderUserPage = (params) => {
 // 用户下单
 export const submitOrderSubmit = (params) => {
 	return request({
-		url: '/order/submit',
+		url: '/user/order/submit',
 		method: 'POST',
 		params
 	})
@@ -216,7 +216,7 @@ export const submitOrderSubmit = (params) => {
 // 查询地址列表
 export const queryAddressBookList = (params) => {
 	return request({
-		url: '/addressBook/list',
+		url: '/user/addressBook/list',
 		method: 'GET',
 		params
 	})
@@ -225,7 +225,7 @@ export const queryAddressBookList = (params) => {
 // 新增默认接口
 export const putAddressBookDefault = (params) => {
 	return request({
-		url: '/addressBook/default',
+		url: '/user/addressBook/default',
 		method: 'PUT',
 		params
 	})
@@ -235,7 +235,7 @@ export const putAddressBookDefault = (params) => {
 // 新增地址接口
 export const addAddressBook = (params) => {
 	return request({
-		url: '/addressBook',
+		url: '/user/addressBook',
 		method: 'POST',
 		params
 	})
@@ -244,7 +244,7 @@ export const addAddressBook = (params) => {
 // 修改地址接口
 export const editAddressBook = (params) => {
 	return request({
-		url: '/addressBook',
+		url: '/user/addressBook',
 		method: 'PUT',
 		params
 	})
@@ -254,7 +254,7 @@ export const editAddressBook = (params) => {
 export const delAddressBook = (ids) => {
 	console.log(ids)
 	return request({
-		url: `/addressBook/?ids=${ids}`,
+		url: `/user/addressBook/?ids=${ids}`,
 		method: 'DELETE',
 		params: { ids }
 	})
@@ -263,7 +263,7 @@ export const delAddressBook = (ids) => {
 // 查询地址通过id
 export const queryAddressBookById = (params) => {
 	return request({
-		url: `/addressBook/${params.id}`,
+		url: `/user/addressBook/${params.id}`,
 		method: 'GET',
 		params
 	})
@@ -273,7 +273,7 @@ export const queryAddressBookById = (params) => {
 // 再来一单
 export const oneOrderAgain = (params) => {
 	return request({
-		url: '/order/again',
+		url: `/user/order/repetition/${params.id}`,
 		method: 'POST',
 		params
 	})
@@ -282,7 +282,7 @@ export const oneOrderAgain = (params) => {
 // 查询默认地址
 export const getAddressBookDefault = () => {
 	return request({
-		url: '/addressBook/default',
+		url: '/user/addressBook/default',
 		method: 'GET'
 	})
 }
@@ -291,7 +291,7 @@ export const getAddressBookDefault = () => {
 // 此接口为首页查询套餐详情展示的接口
 export const querySetmealDishById = (params) => {
 	return request({
-		url: `/setmeal/dish/${params.id}`,
+		url: `/user/setmeal/dish/${params.id}`,
 		method: 'GET'
 	})
 }
