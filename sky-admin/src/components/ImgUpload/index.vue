@@ -13,7 +13,7 @@
                :before-upload="beforeAvatarUpload"
                :headers="headers">
       <img v-if="imageUrl"
-           :src="imageUrl"
+           :src="getImageUrl(imageUrl)"
            class="avatar">
 
       <i v-else
@@ -37,6 +37,7 @@
 import { Vue, Component, Prop, Watch } from 'vue-property-decorator'
 import { baseUrl } from '@/config.json'
 import { getToken } from '@/utils/cookies'
+import { getImageUrl as formatImageUrl } from '@/utils/common'
 @Component({
   name: 'UploadImage'
 })
@@ -50,6 +51,10 @@ export default class extends Vue {
   }
   private imageUrl = ''
   handleRemove() {}
+
+  private getImageUrl(image: string) {
+    return formatImageUrl(image)
+  }
 
   @Watch('propImageUrl')
   private onChange(val) {

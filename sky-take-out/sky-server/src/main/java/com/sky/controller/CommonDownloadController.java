@@ -49,6 +49,8 @@ public class CommonDownloadController {
             if (contentType != null) {
                 response.setContentType(contentType);
             }
+            response.setHeader("Content-Disposition", "inline");
+            response.setHeader("Cache-Control", "public, max-age=3600");
             byte[] buffer = new byte[4096];
             int len;
             while ((len = in.read(buffer)) != -1) {

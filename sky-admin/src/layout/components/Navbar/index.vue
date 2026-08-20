@@ -192,9 +192,13 @@ export default class extends Vue {
         that.$refs.audioVo.currentTime = 0
         that.$refs.audioVo2.currentTime = 0
 
-        console.log(msg, JSON.parse(msg.data), 'msg')
-        // const h = this.$createElement
-        const jsonMsg = JSON.parse(msg.data)
+        let jsonMsg
+        try {
+          jsonMsg = JSON.parse(msg.data)
+        } catch (e) {
+          // 非JSON消息（例如服务端测试广播）直接忽略
+          return
+        }
         if (jsonMsg.type === 1) {
           that.$refs.audioVo.play()
         } else if (jsonMsg.type === 2) {

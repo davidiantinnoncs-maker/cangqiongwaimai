@@ -67,7 +67,7 @@
                          label="图片">
           <template slot-scope="{ row }">
             <el-image style="width: 80px; height: 40px; border: none; cursor: pointer"
-                      :src="row.image">
+                      :src="getImageUrl(row.image)">
               <div slot="error"
                    class="image-slot">
                 <img src="./../../assets/noImg.png"
@@ -154,6 +154,7 @@ import {
 import InputAutoComplete from '@/components/InputAutoComplete/index.vue'
 import Empty from '@/components/Empty/index.vue'
 import { baseUrl } from '@/config.json'
+import { getImageUrl as formatImageUrl } from '@/utils/common'
 
 @Component({
   name: 'package',
@@ -188,6 +189,10 @@ export default class extends Vue {
   created() {
     this.init()
     this.getDishCategoryList()
+  }
+
+  private getImageUrl(image: string) {
+    return formatImageUrl(image)
   }
 
   initProp(val) {

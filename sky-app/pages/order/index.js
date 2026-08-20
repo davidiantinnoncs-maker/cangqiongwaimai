@@ -10,6 +10,8 @@
 		getTableOrderDishList,
 		// 提交订单
 		submitOrderSubmit,
+		// 模拟支付
+		payMock,
 		// 查询默认地址
 		getAddressBookDefault
 	} from '../api/api.js'
@@ -69,7 +71,7 @@
 		},
 		methods: {
 			...mapState(['shopInfo', 'orderListData']),
-      ...mapMutations(['setAddressBackUrl']),
+      ...mapMutations(['setAddressBackUrl', 'initdishListMut']),
 			init () {
 				this.computOrderInfo()
 			},
@@ -135,13 +137,20 @@
 			},
 			// 支付下单
 			payOrderHandle () {
-        if(!this.address){
-          uni.showToast({
-            title: '请选择收货地址',
-            icon: 'none',
-          })
-          return false
-        }
+				if (!this.orderListDataes.length) {
+					uni.showToast({
+						title: '购物车为空',
+						icon: 'none'
+					})
+					return false
+				}
+				if (!this.address) {
+					uni.showToast({
+						title: '请选择收货地址',
+						icon: 'none'
+					})
+					return false
+				}
 				const params = {
 					payMethod: 1,
 					addressBookId: this.addressBookId,
@@ -149,16 +158,33 @@
 				}
 				submitOrderSubmit(params).then(res => {
 					if (res.code === 1) {
-						// uni.navigateTo({url: '/pages/order/success'})
+						return payMock({
+							orderNumber: res.data.orderNumber,
+							payMethod: 1
+						})
+					} else {
+						uni.showToast({
+							title: res.msg || '操作失败',
+							icon: 'none'
+						})
+					}
+				}).then(res => {
+					if (res && res.code === 1) {
+						this.initdishListMut([])
 						uni.redirectTo({
 							url: '/pages/order/success'
 						})
-					}else{
-            uni.showToast({
-              title: res.msg || '操作失败',
-              icon: 'none',
-            })
-          }
+					} else if (res) {
+						uni.showToast({
+							title: res.msg || '支付失败',
+							icon: 'none'
+						})
+					}
+				}).catch(() => {
+					uni.showToast({
+						title: '支付失败，请重试',
+						icon: 'none'
+					})
 				})
 			}
 			

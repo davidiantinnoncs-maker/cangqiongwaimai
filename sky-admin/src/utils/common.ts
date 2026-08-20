@@ -1,6 +1,16 @@
 export const checkProcessEnv =() => {
   return process.env.VUE_APP_DELETE_PERMISSIONS==='true'
 }
+
+// OSS图片默认是attachment下载，统一走后端common/download转成inline展示
+export const getImageUrl = (image: string) => {
+  if (!image) {
+    return ''
+  }
+  const origin = (process.env.VUE_APP_URL || '').replace(/\/+$/, '').replace(/\/admin$/, '')
+  return `${origin}/common/download?name=${encodeURIComponent(image)}`
+}
+
 export const debounce=(fn, time)=> {
   time = time || 200
   // 定时器

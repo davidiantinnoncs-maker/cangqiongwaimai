@@ -213,6 +213,34 @@ export const submitOrderSubmit = (params) => {
 }
 
 
+// 模拟支付
+export const payMock = (params) => {
+	return request({
+		url: '/user/order/payMock',
+		method: 'POST',
+		params
+	})
+}
+
+
+// 用户取消订单
+export const userCancelOrder = (id) => {
+	return request({
+		url: `/user/order/cancel/${id}`,
+		method: 'PUT'
+	})
+}
+
+
+// 客户催单
+export const userRemindOrder = (id) => {
+	return request({
+		url: `/user/order/reminder/${id}`,
+		method: 'GET'
+	})
+}
+
+
 // 查询地址列表
 export const queryAddressBookList = (params) => {
 	return request({

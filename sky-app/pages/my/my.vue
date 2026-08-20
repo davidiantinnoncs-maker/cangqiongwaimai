@@ -49,13 +49,13 @@
 					<!-- 时间和支付状态 -->
 					<view class="date_type">
 						<!-- 时间 -->
-						<text class="time">{{ item.checkoutTime }}</text>
+						<text class="time">{{ item.checkoutTime || item.orderTime }}</text>
 						<!-- 支付状态 -->
 						<text class="type" :class="{'status': item.status==2}">{{ statusWord(item.status) }}</text>
 					</view>
 					<!-- 点菜的内容 -->
 					<view class="food_num">
-						<view class="food_num_item" v-for="(num, y) in item.orderDetails" :key="y">
+						<view class="food_num_item" v-for="(num, y) in item.orderDetailList" :key="y">
 							<text class="food">{{ num.name }}</text>
 							<text class="num">x{{ num.number }}</text>
 						</view>
@@ -63,7 +63,7 @@
 					<view class="food_sum">
 						<view>共{{sumOrder.number}}件商品,实付<text>{{'￥' + sumOrder.amount}}</text></view>
 					</view>
-					<view class="againBtn" v-if="item.status === 4">
+					<view class="againBtn" v-if="item.status === 5">
 						<button class="new_btn" type="default" @click="oneOrderFun(item.id)">再来一单</button>
 					</view>
 				</view>
@@ -110,12 +110,14 @@ export default {
 				case 1:
 				return '待付款'
 				case 2: 
-				return '待派送'
+				return '待接单'
 				case 3:
-				return '已派送'
+				return '已接单'
 				case 4:
-				return '已完成'
+				return '派送中'
 				case 5:
+				return '已完成'
+				case 6:
 				return '已取消'
 			}
 		},
@@ -130,9 +132,9 @@ export default {
 					let number = 0
 					let amount = 0
 					if(data.records.length > 0){
-						data.records[0].orderDetails.forEach(item=>{
+						data.records[0].orderDetailList.forEach(item=>{
 							number += item.number
-							amount += item.amount/100
+							amount += Number(item.amount)
 						})
 						this.sumOrder = {
 							amount: amount,

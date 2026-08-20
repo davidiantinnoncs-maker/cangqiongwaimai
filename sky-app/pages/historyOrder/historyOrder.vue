@@ -6,23 +6,26 @@
 				<!-- 时间和支付状态 -->
 				<view class="date_type">
 					<!-- 时间 -->
-					<text class="time">{{ item.checkoutTime }}</text>
+					<text class="time">{{ item.checkoutTime || item.orderTime }}</text>
 					<!-- 支付状态 -->
 					<text class="type" :class="{'status': item.status==2}">{{ statusWord(item.status) }}</text>
 				</view>
 				<!-- 点菜的内容 -->
 				<view class="food_num">
-					<view class="food_num_item" v-for="(num, y) in item.orderDetails" :key="y">
+					<view class="food_num_item" v-for="(num, y) in item.orderDetailList" :key="y">
 						<text class="food">{{ num.name }}</text>
 						<text class="num">x{{ num.number }}</text>
 						
 					</view>
 					<!-- 商品数量及金额 -->
 					<view class="numAndAum">
-						<text class="num_word">共{{ numes(item.orderDetails).count }}件商品, 实付</text>
-						<text class="num_word num_price">￥{{ numes(item.orderDetails).total }}</text>
+						<text class="num_word">共{{ numes(item.orderDetailList).count }}件商品, 实付</text>
+						<text class="num_word num_price">￥{{ numes(item.orderDetailList).total }}</text>
 					</view>
-					<view class="btn" v-if="item.status === 4">
+					<view class="btn" v-if="item.status >= 2 && item.status <= 4">
+						<button class="new_btn" type="default" @click="remindOrder(item.id)">催单</button>
+					</view>
+					<view class="btn" v-if="item.status === 5">
 						<button class="new_btn" type="default" @click="oneMoreOrder(item.id)">再来一单</button>
 					</view>
 				</view>
@@ -34,7 +37,7 @@
 </template>
 
 <script>
-import { queryOrderUserPage, oneOrderAgain, delShoppingCart } from '../api/api.js'
+import { queryOrderUserPage, oneOrderAgain, delShoppingCart, userRemindOrder } from '../api/api.js'
 import ReachBottom from '@/components/reach-bottom/reach-bottom.vue'
 import Empty from '@/components/empty/empty'
 export default {
@@ -87,20 +90,22 @@ export default {
 				count += Number(obj.number)
 				total += Number(obj.number) * Number(obj.amount)
 			})
-			return { count: count, total: (total/100) }
+			return { count: count, total: total.toFixed(2) }
 		},
 		statusWord (status) {
 			switch (status) {
 				case 1:
 				return '待付款'
 				case 2: 
-				return '待派送'
+				return '待接单'
 				case 3:
-				return '已派送'
+				return '已接单'
 				case 4:
+				return '派送中'
+				case 5:
 				return '已完成'
-        case 5:
-        return '已取消'
+				case 6:
+				return '已取消'
 			}
 		},
 		getList () {
@@ -136,6 +141,26 @@ export default {
 					// 	url: '/pages/index/index?formOrder=' + 'oneMoreOrder'
 					// })
 				}
+			})
+		},
+		remindOrder (id) {
+			userRemindOrder(id).then(res => {
+				if (res.code === 1) {
+					uni.showToast({
+						title: '已提醒商家尽快处理',
+						icon: 'none'
+					})
+				} else {
+					uni.showToast({
+						title: res.msg || '催单失败',
+						icon: 'none'
+					})
+				}
+			}).catch(() => {
+				uni.showToast({
+					title: '催单失败，请重试',
+					icon: 'none'
+				})
 			})
 		}
 	}
